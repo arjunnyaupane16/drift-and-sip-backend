@@ -1,7 +1,3 @@
-// ------------------------------
-// 🌐 Drift and Sip - Backend Server (for Render)
-// ------------------------------
-
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -12,12 +8,17 @@ import { archiveOldOrders } from './controllers/orderController.js';
 import { setupOrderCleanupJob } from './cronJobs.js';
 import orderRoutes from './routes/orderRoutes.js';
 
-// 🔧 Load environment variables
 dotenv.config();
 
-// ✅ Create Express App
 const app = express();
-app.use(cors());
+
+// ✅ CORS setup for Vercel frontend
+app.use(cors({
+  origin: ['https://drift-and-sip-user-app.vercel.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // ✅ Routes
@@ -26,7 +27,6 @@ app.get('/', (req, res) => {
 });
 app.use('/api/orders', orderRoutes);
 
-// ✅ MongoDB Connect and start server
 const startServer = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
