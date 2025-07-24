@@ -12,11 +12,14 @@ dotenv.config();
 
 const app = express();
 
-// ✅ CORS setup for Vercel frontend
+// ✅ CORS setup for Vercel frontend - add all frontend URLs here
 app.use(cors({
-  origin: ['https://drift-and-sip-user-app.vercel.app'],
+  origin: [
+    'https://drift-and-sip-user-app.vercel.app',  // user frontend
+    'https://admin-app-rose.vercel.app',          // admin frontend
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  credentials: true,
 }));
 
 app.use(express.json());
