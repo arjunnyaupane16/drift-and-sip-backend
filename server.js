@@ -17,6 +17,10 @@ app.use(cors({
   origin: [
     'https://drift-and-sip-user-app.vercel.app',  // user frontend
     'https://admin-app-rose.vercel.app',          // admin frontend
+    'http://localhost:19006',                     // Expo web
+    'http://127.0.0.1:19006',
+    'http://localhost:3000',                      // Next/CRA
+    'http://localhost:5173',                      // Vite
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,

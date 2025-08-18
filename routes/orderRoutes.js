@@ -9,6 +9,7 @@ import {
   restoreOrder,
   updateOrderStatus,
   markOrderPaid,
+  exportOrders,
 } from '../controllers/orderController.js';
 
 const router = express.Router();
@@ -17,6 +18,7 @@ router.post('/', createOrder);
 router.get('/', getOrders);
 router.get('/admin', getAdminOrders);
 router.get('/deleted', getDeletedOrders);
+router.get('/export', exportOrders);
 
 router.put('/:id/restore', restoreOrder);
 router.delete('/empty-trash', emptyTrash);

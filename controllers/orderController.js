@@ -14,6 +14,64 @@ export const createOrder = async (req, res) => {
   }
 };
 
+// ✅ Export orders as CSV
+export const exportOrders = async (req, res) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 });
+
+    const headers = [
+      'orderId',
+      'orderNumber',
+      'customerName',
+      'customerPhone',
+      'orderType',
+      'tableNumber',
+      'status',
+      'paymentStatus',
+      'totalAmount',
+      'items',
+      'createdAt',
+      'paidAt'
+    ];
+
+    const toCsvValue = (v) => {
+      if (v === null || v === undefined) return '';
+      const s = typeof v === 'string' ? v : JSON.stringify(v);
+      // Escape quotes and wrap in quotes if contains comma or quote
+      const escaped = s.replace(/"/g, '""');
+      return /[",\n]/.test(escaped) ? `"${escaped}"` : escaped;
+    };
+
+    const rows = orders.map(o => {
+      const items = Array.isArray(o.items)
+        ? o.items.map(i => `${i.quantity}x ${i.name} (${i.size || ''}) @ ${i.price}`).join('; ')
+        : '';
+      return [
+        o._id,
+        o.orderNumber || '',
+        o.customer?.name || '',
+        o.customer?.phone || '',
+        o.orderType || '',
+        o.tableNumber || '',
+        o.status || '',
+        o.paymentStatus || '',
+        typeof o.totalAmount === 'number' ? o.totalAmount : (o.total || ''),
+        items,
+        o.createdAt ? new Date(o.createdAt).toISOString() : '',
+        o.paidAt ? new Date(o.paidAt).toISOString() : ''
+      ].map(toCsvValue).join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="orders.csv"');
+    return res.status(200).send(csv);
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to export orders', message: err.message });
+  }
+};
+
 // ✅ Get all active orders (non-deleted, non-archived)
 export const getOrders = async (req, res) => {
   try {
@@ -63,7 +121,9 @@ export const updateOrderStatus = async (req, res) => {
 // ✅ Soft delete or hard delete based on query
 export const deleteOrder = async (req, res) => {
   try {
-    const { deletedFrom } = req.body || {};
+    const bodyDeletedFrom = req.body?.deletedFrom;
+    const queryDeletedFrom = req.query?.deletedFrom;
+    const deletedFrom = bodyDeletedFrom || queryDeletedFrom;
     const { permanent } = req.query;
 
     if (permanent === 'true') {
