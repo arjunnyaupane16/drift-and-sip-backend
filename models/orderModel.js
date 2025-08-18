@@ -22,6 +22,19 @@ const orderSchema = new mongoose.Schema({
   specialInstructions: String,
   totalAmount: Number,
 
+  // ✅ Payment fields
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid'],
+    default: 'pending'
+  },
+  paymentMethod: {
+    type: String,
+  },
+  paidAt: {
+    type: Date,
+  },
+
   status: {
     type: String,
     default: 'pending',

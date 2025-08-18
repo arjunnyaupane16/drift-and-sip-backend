@@ -7,7 +7,8 @@ import {
   getDeletedOrders,
   getOrders,
   restoreOrder,
-  updateOrderStatus
+  updateOrderStatus,
+  markOrderPaid,
 } from '../controllers/orderController.js';
 
 const router = express.Router();
@@ -20,6 +21,7 @@ router.get('/deleted', getDeletedOrders);
 router.put('/:id/restore', restoreOrder);
 router.delete('/empty-trash', emptyTrash);
 router.put('/:id', updateOrderStatus);
+router.post('/:id/pay', markOrderPaid);
 router.delete('/:id', deleteOrder);
 
 export default router;

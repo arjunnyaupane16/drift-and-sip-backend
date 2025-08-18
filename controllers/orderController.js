@@ -175,3 +175,30 @@ export const getDeletedOrders = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch deleted orders', message: err.message });
   }
 };
+
+// ✅ Mark order as paid (dedicated endpoint)
+export const markOrderPaid = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentMethod } = req.body || {};
+
+    const updated = await Order.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          paymentStatus: 'paid',
+          status: 'confirmed',
+          paidAt: new Date(),
+          ...(paymentMethod ? { paymentMethod } : {}),
+        }
+      },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ error: 'Order not found' });
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark order as paid', message: err.message });
+  }
+};

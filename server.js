@@ -12,13 +12,13 @@ dotenv.config();
 
 const app = express();
 
-// ✅ CORS setup for Vercel frontend - add all frontend URLs here
+// ✅ CORS setup for Vercel frontend
 app.use(cors({
   origin: [
     'https://drift-and-sip-user-app.vercel.app',  // user frontend
     'https://admin-app-rose.vercel.app',          // admin frontend
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
 }));
 
@@ -43,10 +43,25 @@ const startServer = async () => {
       await archiveOldOrders();
     });
 
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
+    let PORT = process.env.PORT || 5000;
+
+    const tryListen = (port) => {
+      const server = app.listen(port, () => {
+        console.log(`🚀 Server running on port ${port}`);
+      });
+
+      server.on("error", (err) => {
+        if (err.code === "EADDRINUSE") {
+          console.warn(`⚠️ Port ${port} busy, trying ${port + 1}...`);
+          tryListen(port + 1);
+        } else {
+          throw err;
+        }
+      });
+    };
+
+    tryListen(PORT);
+
   } catch (error) {
     console.error('❌ Server failed to start:', error);
   }
