@@ -1,6 +1,6 @@
 import Order from '../models/orderModel.js';
 
-// ✅ Create a new order
+// Create a new order
 export const createOrder = async (req, res) => {
   try {
     const order = new Order(req.body);
@@ -14,7 +14,7 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// ✅ Export orders as CSV
+// Export orders as CSV
 export const exportOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
@@ -72,12 +72,14 @@ export const exportOrders = async (req, res) => {
   }
 };
 
-// ✅ Get all active orders (non-deleted, non-archived)
+// Get all active orders (non-deleted, non-archived)
 export const getOrders = async (req, res) => {
   try {
     const excludeOrderCardDeleted = req.query.excludeOrderCardDeleted === 'true';
     const filter = {
       isArchived: false,
+      // Exclude soft-deleted orders from active list
+      status: { $ne: 'deleted' },
       deletedFrom: { $ne: 'admin' }
     };
     if (excludeOrderCardDeleted) {
@@ -91,7 +93,7 @@ export const getOrders = async (req, res) => {
   }
 };
 
-// ✅ Get all orders (admin dashboard)
+// Get all orders (admin dashboard)
 export const getAdminOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
@@ -101,7 +103,7 @@ export const getAdminOrders = async (req, res) => {
   }
 };
 
-// ✅ Update order (status or paymentStatus)
+// Update order (status or paymentStatus)
 export const updateOrderStatus = async (req, res) => {
   try {
     const updated = await Order.findByIdAndUpdate(
@@ -118,16 +120,13 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-// ✅ Soft delete or hard delete based on query
+// Soft delete or hard delete based on query
 export const deleteOrder = async (req, res) => {
   try {
-    const bodyDeletedFrom = req.body?.deletedFrom;
-    const queryDeletedFrom = req.query?.deletedFrom;
-    const deletedFrom = bodyDeletedFrom || queryDeletedFrom;
     const { permanent } = req.query;
 
     if (permanent === 'true') {
-      // 🧨 PERMANENT DELETE
+      // PERMANENT DELETE
       const deleted = await Order.deleteOne({ _id: req.params.id });
       if (deleted.deletedCount === 0) {
         return res.status(404).json({ error: 'Order not found for deletion' });
@@ -135,28 +134,34 @@ export const deleteOrder = async (req, res) => {
       return res.json({ success: true, message: 'Order permanently deleted' });
     }
 
-    // 🧪 SOFT DELETE
-    if (deletedFrom === 'orderCard') {
-      await Order.findByIdAndUpdate(req.params.id, {
-        isDeleted: true,
-        scheduledForDeletion: true,
-        deletedAt: new Date(),
-        deletedFrom: 'orderCard',
-      });
-    } else {
-      await Order.findByIdAndUpdate(req.params.id, {
-        status: 'deleted',
-        deletedFrom: 'admin',
-      });
+    // SOFT DELETE
+    const deletedFrom = (req.body && req.body.deletedFrom) ? req.body.deletedFrom : 'orderCard';
+    const updated = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          status: 'deleted',
+          deletedAt: new Date(),
+          deletedFrom,
+          // Flags for lifecycle/cleanup (kept but TTL requires both true if used)
+          isDeleted: true,
+          scheduledForDeletion: false,
+        }
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Order not found for soft delete' });
     }
 
-    res.json({ success: true, message: 'Order soft-deleted' });
+    res.json({ success: true, message: 'Order soft-deleted', deletedFrom });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete order', message: err.message });
   }
 };
 
-// ✅ Archive orders older than 24h
+// Archive orders older than 24h
 export const archiveOldOrders = async () => {
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
   try {
@@ -168,13 +173,13 @@ export const archiveOldOrders = async () => {
       },
       { $set: { isArchived: true } }
     );
-    console.log('✅ Old orders archived successfully');
+    console.log(' Old orders archived successfully');
   } catch (err) {
-    console.error('❌ Failed to archive old orders:', err.message);
+    console.error(' Failed to archive old orders:', err.message);
   }
 };
 
-// ✅ Restore soft-deleted order
+// Restore soft-deleted order
 export const restoreOrder = async (req, res) => {
   try {
     const { id } = req.params;
@@ -199,7 +204,7 @@ export const restoreOrder = async (req, res) => {
   }
 };
 
-// ✅ Empty trash: permanently delete all soft-deleted orders
+// Empty trash: permanently delete all soft-deleted orders
 export const emptyTrash = async (req, res) => {
   try {
     const toDelete = await Order.find({
@@ -223,11 +228,14 @@ export const emptyTrash = async (req, res) => {
   }
 };
 
-// ✅ Get only admin-deleted orders (for Trash screen)
+// Get only admin-deleted orders (for Trash screen)
 export const getDeletedOrders = async (req, res) => {
   try {
     const deletedOrders = await Order.find({
-      deletedFrom: 'admin'
+      $or: [
+        { deletedFrom: 'admin' },
+        { deletedFrom: 'orderCard' }
+      ]
     }).sort({ deletedAt: -1 });
 
     res.json(deletedOrders);
@@ -236,7 +244,7 @@ export const getDeletedOrders = async (req, res) => {
   }
 };
 
-// ✅ Mark order as paid (dedicated endpoint)
+// Mark order as paid (dedicated endpoint)
 export const markOrderPaid = async (req, res) => {
   try {
     const { id } = req.params;
