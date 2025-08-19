@@ -24,6 +24,9 @@ router.put('/:id/restore', restoreOrder);
 router.delete('/empty-trash', emptyTrash);
 router.put('/:id', updateOrderStatus);
 router.post('/:id/pay', markOrderPaid);
+// Frontend fallback routes
+router.post('/:id/mark-paid', markOrderPaid);
+router.post('/:id/delete', deleteOrder);
 router.delete('/:id', deleteOrder);
 
 export default router;

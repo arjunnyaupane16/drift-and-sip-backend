@@ -82,6 +82,13 @@ export const getOrders = async (req, res) => {
       status: { $ne: 'deleted' },
       deletedFrom: { $ne: 'admin' }
     };
+    // Optional date range filter
+    const { startDate, endDate } = req.query || {};
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
     if (excludeOrderCardDeleted) {
       filter.deletedFrom = { $nin: ['admin', 'orderCard'] };
     }
